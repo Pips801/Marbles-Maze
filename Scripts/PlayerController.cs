@@ -1,6 +1,6 @@
-﻿using UnityEngine;
+﻿using System.Collections;
+using UnityEngine;
 using UnityEngine.UI;
-using System.Collections;
 
 public class PlayerController : MonoBehaviour 
 {
@@ -9,7 +9,6 @@ public class PlayerController : MonoBehaviour
 	 *	Player Controller.
 	 *
 	 *	Apply this script to the player object, attatch a camera (and set it's position), give it a player number and a speed.
-	 *	
 	 */
 
 	// the camera to follow the player
@@ -21,17 +20,20 @@ public class PlayerController : MonoBehaviour
 	// the player number
 	public int playerNumber;
 
-	// camera offset
-	private Vector3 cameraOffset;
-
-	// player starting position for reset
-	private Vector3 startPosition;
-
 	// win text
 	public Text winText;
 
 	// has the player won
-	public static bool hasWon = false;
+	public static bool hasWon;
+
+	// camera offset
+	private Vector3 cameraOffset;
+	
+	// player starting position for reset
+	private Vector3 restartPosition;
+
+	// number of times the player fell off the map.
+	private int timesDied;
 
 	void Start() {
 
@@ -39,27 +41,34 @@ public class PlayerController : MonoBehaviour
 		cameraOffset = camera.transform.position;
 
 		// set player position
-		startPosition = transform.position;
+		restartPosition = transform.position;
 
+		// player has not won
 		hasWon = false;
+
+		// player just started
+		timesDied = 0;
 
 	}
 
 	
 	void FixedUpdate (){
 
-		// get the axies for the input
-		float moveHorizontal = Input.GetAxis ("Horizontal" + playerNumber);
-		float moveVertical = Input.GetAxis ("Vertical" + playerNumber);
-		
-		// collect the force data
-		Vector3 movment = new Vector3 (moveHorizontal, 0.0f, moveVertical);
+		// disable input if the game is over
+		if (!hasWon) {
 
-		// apply force
-		rigidbody.AddForce (movment * speed * Time.deltaTime);			
+			// get the axies for the input
+			float moveHorizontal = Input.GetAxis ("Horizontal" + playerNumber);
+			float moveVertical = Input.GetAxis ("Vertical" + playerNumber);
 
-		
-		}
+			// collect the force data
+			Vector3 movment = new Vector3 (moveHorizontal, 0.0f, moveVertical);
+
+			// apply force
+			rigidbody.AddForce (movment * speed * Time.deltaTime);			
+
+			}
+	}
 
 
 	void Update () {
@@ -78,18 +87,33 @@ public class PlayerController : MonoBehaviour
 			rigidbody.velocity = new Vector3(0, 0, 0);
 			rigidbody.angularVelocity = new Vector3(0, 0, 0);
 
-			transform.position = startPosition;
+			// set the position to the last restart position.
+			transform.position = restartPosition;
+
+			// the player just died
+			timesDied++;
 
 		}
 
 		// win trigger
 		if (other.gameObject.tag == "Finish") {
+			winText.alignment = TextAnchor.MiddleCenter;
+			string time = winText.text;
+			winText.text = "Player " + playerNumber + " wins!" + System.Environment.NewLine +" Time: " + time;
 
-			winText.text = "Player " + playerNumber + " wins!";
-
+			// set hasWon. this will stop the counter from trying to update.
 			hasWon = true;
 
 				}
+
+		// checkpoint
+		if (other.gameObject.tag == "Checkpoint") {
+
+			//when ever the player enters a checkpoint, the checkpoints position is set here
+			restartPosition = other.gameObject.transform.position;
+
+				}
+
 	}
 
 }
